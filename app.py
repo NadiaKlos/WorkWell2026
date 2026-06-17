@@ -1,3 +1,4 @@
+import base64
 import json
 import random
 import sqlite3
@@ -108,56 +109,98 @@ st.markdown(
         :root { color-scheme: dark; }
 
         html, body, [data-testid="stAppViewContainer"], .stApp {
-            background: #0b1020 !important;
-            color: #e9eef7 !important;
+            background: #000000 !important;
+            color: #ffffff !important;
         }
         [data-testid="stHeader"] {
             background: transparent !important;
         }
         [data-testid="stSidebar"] {
-            background: #10182a !important;
+            background: #080808 !important;
             border-right: 1px solid rgba(255,255,255,.08);
         }
         [data-testid="stToolbar"] {
             background: transparent !important;
         }
         h1, h2, h3, h4, h5, h6, p, span, label, small {
-            color: #e9eef7;
+            color: #ffffff;
         }
         [data-testid="stMarkdownContainer"] p,
         [data-testid="stMarkdownContainer"] li,
         [data-testid="stMarkdownContainer"] strong {
-            color: #e9eef7;
+            color: #ffffff;
         }
         [data-baseweb="input"] > div,
         [data-baseweb="textarea"] > div,
         .stTextInput > div > div,
         .stTextArea > div > div {
-            background: #121a2d !important;
+            background: #0a0a0a !important;
             border: 1px solid #2f3b57 !important;
             border-radius: 10px !important;
         }
         input, textarea {
-            color: #f4f7ff !important;
-            caret-color: #f4f7ff !important;
+            color: #ffffff !important;
+            caret-color: #ffffff !important;
         }
         input::placeholder, textarea::placeholder {
             color: #8f9ab3 !important;
         }
         .stSelectbox [data-baseweb="select"] > div,
         .stMultiSelect [data-baseweb="select"] > div {
-            background: #121a2d !important;
+            background: #0a0a0a !important;
             border: 1px solid #2f3b57 !important;
         }
         .stAlert {
-            background: #131b2f !important;
+            background: #0b0b0b !important;
             border: 1px solid #2f3b57 !important;
         }
         div[data-testid="stDataFrame"] {
             border: 1px solid rgba(255,255,255,.08);
-            background: #121a2d !important;
+            background: #0a0a0a !important;
             border-radius: 12px;
             overflow: hidden;
+        }
+        div[data-testid="stDataFrame"] [role="grid"],
+        div[data-testid="stDataFrame"] [role="row"],
+        div[data-testid="stDataFrame"] [role="gridcell"],
+        div[data-testid="stDataFrame"] [role="columnheader"],
+        div[data-testid="stDataFrame"] [data-testid="stDataFrame"] {
+            background-color: #0a0a0a !important;
+            color: #ffffff !important;
+        }
+        div[data-testid="stDataFrame"] [role="columnheader"] {
+            background: #111111 !important;
+            color: #ffffff !important;
+            border-bottom: 1px solid #2f3b57 !important;
+        }
+        div[data-testid="stDataFrame"] [role="gridcell"] {
+            border-color: #2f3b57 !important;
+        }
+        div[data-testid="stDataFrame"] [data-baseweb="checkbox"] {
+            background: #0a0a0a !important;
+        }
+        .assignment-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #0a0a0a;
+            color: #ffffff;
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .assignment-table thead th {
+            background: #111111;
+            color: #ffffff;
+            border-bottom: 1px solid #2f3b57;
+            padding: 10px;
+            text-align: left;
+        }
+        .assignment-table tbody td {
+            background: #0a0a0a;
+            color: #ffffff;
+            border-top: 1px solid #2f3b57;
+            padding: 10px;
+            text-align: left;
         }
         [data-testid="stProgressBar"] > div > div {
             background: #1f2a43 !important;
@@ -169,7 +212,7 @@ st.markdown(
             margin-bottom: .1rem;
         }
         .sub-title {
-            text-align: center; color: #888; font-size: 1rem; margin-bottom: 1.6rem;
+            text-align: center; color: #ffffff; font-size: 1rem; margin-bottom: 1.6rem;
         }
         .result-box {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
@@ -222,6 +265,19 @@ st.markdown(
             background: #b7b7bd !important;
             border-color: #a9a9af !important;
             color: #efefef !important;
+        }
+        [data-testid="stDownloadButton"] button {
+            background: #000000 !important;
+            border: 1px solid #ffffff !important;
+            color: #ffffff !important;
+        }
+        [data-testid="stDownloadButton"] button:hover {
+            background: #111111 !important;
+            border-color: #ffffff !important;
+            color: #ffffff !important;
+        }
+        [data-testid="stDownloadButton"] button span {
+            color: #ffffff !important;
         }
         .stButton>button:active { transform: scale(.97); }
     </style>
@@ -491,8 +547,19 @@ def build_participants_html(results: list[dict[str, str]]) -> str:
 # ═══════════════════════════════════════════════════════════════
 #  ⑥ TITRE
 # ═══════════════════════════════════════════════════════════════
-st.markdown('<div class="main-title"> WorkWell 2026 : Tirage au sort de l\'Escape Game  </div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title"></div>', unsafe_allow_html=True)
+title_col, gif_col = st.columns([6, 1], gap="small")
+with title_col:
+    st.markdown('<div class="main-title"> WorkWell 2026 : Tirage au sort de l\'Escape Game Horreur </div>', unsafe_allow_html=True)
+with gif_col:
+    gif_path = Path(__file__).with_name("cri.gif")
+    gif_data = base64.b64encode(gif_path.read_bytes()).decode("utf-8")
+    st.markdown(
+        f'<div style="display:flex;align-items:center;justify-content:flex-end;height:100%;padding-top:.5rem;margin-right:2cm;">'
+        f'<img src="data:image/gif;base64,{gif_data}" style="max-width:155px;width:100%;height:auto;" />'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
 # ═══════════════════════════════════════════════════════════════
 #  ⑦ LAYOUT : deux colonnes
 # ═══════════════════════════════════════════════════════════════
@@ -508,15 +575,15 @@ with col_left:
         st.session_state.clear_name_field = False
 
     # ── Zone d'action (2-en-1) ───────────────
-    st.subheader("Entrez votre prénom")
+    st.subheader("Entre ton prénom : ")
     name_input = st.text_input(
-        "Entrez votre prénom :",
+        "",
         key="name_field",
         placeholder="ex : Nadia",
     )
 
     if st.button(
-        "🎲 Lancer",
+        "🎲 Lancer le tirage",
         type="primary",
         use_container_width=True,
         disabled=st.session_state.done,
@@ -659,15 +726,13 @@ with col_right:
         st.subheader("📋 Attributions")
 
         df = pd.DataFrame(st.session_state.results)
-        st.dataframe(
-            df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Participant": st.column_config.TextColumn("👤 Participant"),
-                "Groupe":      st.column_config.TextColumn("🏷️ Groupe"),
-            },
+        df = df[["Participant", "Groupe"]].rename(
+            columns={
+                "Participant": "👤 Participant",
+                "Groupe": "🏷️ Groupe",
+            }
         )
+        st.markdown(df.to_html(index=False, classes="assignment-table", escape=False), unsafe_allow_html=True)
 
         csv_data = df.to_csv(index=False).encode("utf-8")
         st.download_button(
