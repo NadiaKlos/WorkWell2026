@@ -1,9 +1,3 @@
-"""
-Tirage au sort par groupes — Streamlit App
-Participants et groupes fixes. Chaque personne saisit son prénom,
-tourne la roue, et est affectée à un groupe (sans remise).
-"""
-
 import json
 import random
 import sqlite3
@@ -21,7 +15,7 @@ PARTICIPANTS: list[str] = [
     "Nadia",
     "Nassima",
     "Emma",
-    "Guillaumme",
+    "Guillaume",
     "Christophe",
     "Richard",
     "Abderrahmen",
@@ -102,7 +96,7 @@ def _db_save_assignment(participant: str, group_name: str) -> None:
 # ═══════════════════════════════════════════════════════════════
 #  ② PAGE CONFIG & CSS
 # ═══════════════════════════════════════════════════════════════
-st.set_page_config(page_title="🎡 Tirage au Sort", page_icon="🎡", layout="wide")
+st.set_page_config(page_title=" WorkWell 2026 - Tirage au Sort", page_icon="🎡", layout="wide")
 
 st.markdown(
     """
@@ -213,6 +207,7 @@ def _init() -> None:
     st.session_state.balloon_id     = draw_count    # évite ballons au rechargement
     st.session_state.auto_spin      = False         # déclenche l'auto-spin de la roue
     st.session_state.done           = len(pool) == 0
+    st.session_state.clear_name_field = False       # reset du champ prénom au prochain run
 
 _init()
 
@@ -381,8 +376,8 @@ def group_of(participant: str) -> str | None:
 # ═══════════════════════════════════════════════════════════════
 #  ⑥ TITRE
 # ═══════════════════════════════════════════════════════════════
-st.markdown('<div class="main-title">🎡 WorkWell 2026</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">Tirage au sort de l\'équipe Data & Projets</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title"> WorkWell 2026 : Tirage au sort de l\'Escape Game</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title"></div>', unsafe_allow_html=True)
 # ═══════════════════════════════════════════════════════════════
 #  ⑦ LAYOUT : deux colonnes
 # ═══════════════════════════════════════════════════════════════
@@ -393,8 +388,12 @@ col_left, col_right = st.columns([1, 1.5], gap="large")
 # ══════════════════════════════════════════════
 with col_left:
 
+    if st.session_state.clear_name_field:
+        st.session_state.name_field = ""
+        st.session_state.clear_name_field = False
+
     # ── Zone d'action (2-en-1) ───────────────
-    st.subheader("Entrez votre prénom pour choisir votre escape game !")
+    st.subheader("Entrez votre prénom")
     name_input = st.text_input(
         "Entrez votre prénom :",
         key="name_field",
@@ -441,7 +440,7 @@ with col_left:
                 st.session_state.draw_id += 1
                 st.session_state.done = len(pool) == 0
                 st.session_state.name_error = None
-                st.session_state.name_field = ""
+                st.session_state.clear_name_field = True
                 st.rerun()
 
     if st.session_state.name_error:
