@@ -1,6 +1,7 @@
 import json
 import random
 import sqlite3
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -36,6 +37,9 @@ GROUP_CSS: dict[str, str] = {
     "La Crypte":  "group-crypte",
     "L'Immortel": "group-immortel",
 }
+
+WHEEL_SPIN_START_DELAY_MS = 500
+WHEEL_SPIN_DURATION_MS = 4700
 
 DB_PATH = Path(__file__).with_name("tirage.db")
 
@@ -101,6 +105,63 @@ st.set_page_config(page_title=" WorkWell 2026 - Tirage au Sort", page_icon="🎡
 st.markdown(
     """
     <style>
+        :root { color-scheme: dark; }
+
+        html, body, [data-testid="stAppViewContainer"], .stApp {
+            background: #0b1020 !important;
+            color: #e9eef7 !important;
+        }
+        [data-testid="stHeader"] {
+            background: transparent !important;
+        }
+        [data-testid="stSidebar"] {
+            background: #10182a !important;
+            border-right: 1px solid rgba(255,255,255,.08);
+        }
+        [data-testid="stToolbar"] {
+            background: transparent !important;
+        }
+        h1, h2, h3, h4, h5, h6, p, span, label, small {
+            color: #e9eef7;
+        }
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] li,
+        [data-testid="stMarkdownContainer"] strong {
+            color: #e9eef7;
+        }
+        [data-baseweb="input"] > div,
+        [data-baseweb="textarea"] > div,
+        .stTextInput > div > div,
+        .stTextArea > div > div {
+            background: #121a2d !important;
+            border: 1px solid #2f3b57 !important;
+            border-radius: 10px !important;
+        }
+        input, textarea {
+            color: #f4f7ff !important;
+            caret-color: #f4f7ff !important;
+        }
+        input::placeholder, textarea::placeholder {
+            color: #8f9ab3 !important;
+        }
+        .stSelectbox [data-baseweb="select"] > div,
+        .stMultiSelect [data-baseweb="select"] > div {
+            background: #121a2d !important;
+            border: 1px solid #2f3b57 !important;
+        }
+        .stAlert {
+            background: #131b2f !important;
+            border: 1px solid #2f3b57 !important;
+        }
+        div[data-testid="stDataFrame"] {
+            border: 1px solid rgba(255,255,255,.08);
+            background: #121a2d !important;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        [data-testid="stProgressBar"] > div > div {
+            background: #1f2a43 !important;
+        }
         .main-title {
             font-size: 2.7rem; font-weight: 900; text-align: center;
             background: linear-gradient(135deg, #5a64a8, #b05a72);
@@ -146,7 +207,6 @@ st.markdown(
             border: 2px solid #2ecc71; border-radius: 16px; padding: 1.6rem;
             text-align: center; font-size: 1.9rem; color: #fff; margin: 1rem 0;
         }
-        div[data-testid="stDataFrame"] { border-radius: 12px; overflow: hidden; }
         .stButton>button {
             border-radius: 10px; font-weight: 700; font-size: 1rem;
             padding: .6rem 1.4rem; transition: transform .1s;
@@ -214,7 +274,13 @@ _init()
 # ═══════════════════════════════════════════════════════════════
 #  ④ CONSTRUCTION DU HTML DE LA ROUE
 # ═══════════════════════════════════════════════════════════════
-def build_wheel_html(pool: list[str], auto_spin: bool, target_idx: int) -> str:
+def build_wheel_html(
+    pool: list[str],
+    auto_spin: bool,
+    target_idx: int,
+    spin_delay_ms: int = WHEEL_SPIN_START_DELAY_MS,
+    spin_duration_ms: int = WHEEL_SPIN_DURATION_MS,
+) -> str:
     """Génère le HTML/JS de la roue avec les segments correspondant au pool."""
     if not pool:
         return (
@@ -237,6 +303,8 @@ def build_wheel_html(pool: list[str], auto_spin: bool, target_idx: int) -> str:
     colors_json = json.dumps(colors)
     auto_js     = "true" if auto_spin else "false"
     tidx_js     = str(int(target_idx))
+    delay_js    = str(int(spin_delay_ms))
+    dur_js      = str(int(spin_duration_ms))
 
     return f"""
 <style>
@@ -263,6 +331,8 @@ def build_wheel_html(pool: list[str], auto_spin: bool, target_idx: int) -> str:
   const colors    = {colors_json};
   const autoSpin  = {auto_js};
   const targetIdx = {tidx_js};
+    const spinDelay  = {delay_js};
+    const spinDur    = {dur_js};
 
   const canvas = document.getElementById('wheelCanvas');
   const ctx    = canvas.getContext('2d');
@@ -308,7 +378,7 @@ def build_wheel_html(pool: list[str], auto_spin: bool, target_idx: int) -> str:
     if (spinning) return;
     spinning = true;
     document.getElementById('lbl').textContent = '';
-    const startA = angle, t0 = performance.now(), dur = 4200 + Math.random() * 900;
+    const startA = angle, t0 = performance.now(), dur = spinDur;
     let totalRot;
 
     if (forced !== undefined && forced !== null) {{
@@ -330,13 +400,13 @@ def build_wheel_html(pool: list[str], auto_spin: bool, target_idx: int) -> str:
         requestAnimationFrame(frame);
       }} else {{
         spinning = false;
-        document.getElementById('lbl').textContent = '🎯 ' + names[getWinner(angle)];
+                document.getElementById('lbl').textContent = '';
       }}
     }})(t0);
   }}
 
   draw(angle);
-  if (autoSpin) setTimeout(() => spin(targetIdx), 500);
+    if (autoSpin) setTimeout(() => spin(targetIdx), spinDelay);
 }})();
 </script>
 """
@@ -349,6 +419,34 @@ def remaining_per_group() -> dict[str, int]:
     for g in st.session_state.pool:
         counts[g] += 1
     return counts
+
+
+def remaining_per_group_from_pool(pool: list[str]) -> dict[str, int]:
+    counts = {g: 0 for g in GROUPS}
+    for g in pool:
+        if g in counts:
+            counts[g] += 1
+    return counts
+
+
+def build_group_status_html(pool: list[str]) -> str:
+    rpg = remaining_per_group_from_pool(pool)
+    blocks = []
+    for gname, remaining in rpg.items():
+        total = GROUPS[gname]
+        taken = total - remaining
+        css = GROUP_CSS.get(gname, "group-crypte")
+        progress_pct = (taken / total * 100) if total else 0
+        blocks.append(
+            f'<div class="group-card {css}">'
+            f'<span>{gname}</span>'
+            f'<span class="pill">{remaining} / {total} place{"s" if remaining != 1 else ""}</span>'
+            f'</div>'
+            f'<div style="height:10px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden;margin:.3rem 0 .65rem;">'
+            f'<div style="width:{progress_pct:.2f}%;height:100%;background:linear-gradient(90deg, rgba(255,255,255,.55), rgba(255,255,255,.95));"></div>'
+            f'</div>'
+        )
+    return "".join(blocks)
 
 
 def build_alternating_wheel_pool(pool: list[str]) -> list[str]:
@@ -373,10 +471,27 @@ def group_of(participant: str) -> str | None:
             return r["Groupe"]
     return None
 
+
+def build_participants_html(results: list[dict[str, str]]) -> str:
+    assigned = {r["Participant"]: r["Groupe"] for r in results}
+    html_badges = ""
+    for p in PARTICIPANTS:
+        grp = assigned.get(p)
+        if grp:
+            badge_css = "badge-done-crypte" if grp == "La Crypte" else "badge-done-immortel"
+            html_badges += (
+                f'<span class="badge {badge_css}">✓ {p}</span>'
+                f'<span style="font-size:.75rem;color:#aaa;margin-right:.5rem;"> → {grp}</span>'
+            )
+        else:
+            html_badges += f'<span class="badge badge-pending">⏳ {p}</span>'
+    return html_badges + "<br>"
+
+
 # ═══════════════════════════════════════════════════════════════
 #  ⑥ TITRE
 # ═══════════════════════════════════════════════════════════════
-st.markdown('<div class="main-title"> WorkWell 2026 : Tirage au sort de l\'Escape Game</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title"> WorkWell 2026 : Tirage au sort de l\'Escape Game  </div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title"></div>', unsafe_allow_html=True)
 # ═══════════════════════════════════════════════════════════════
 #  ⑦ LAYOUT : deux colonnes
@@ -458,34 +573,11 @@ with col_left:
 
     # ── Liste des participants ────────────────
     st.subheader("👥 Participants")
-    html_badges = ""
-    for p in PARTICIPANTS:
-        grp = group_of(p)
-        if grp:
-            badge_css = "badge-done-crypte" if grp == "La Crypte" else "badge-done-immortel"
-            html_badges += (
-                f'<span class="badge {badge_css}">✓ {p}</span>'
-                f'<span style="font-size:.75rem;color:#aaa;margin-right:.5rem;"> → {grp}</span>'
-            )
-        else:
-            html_badges += f'<span class="badge badge-pending">⏳ {p}</span>'
-    st.markdown(html_badges + "<br>", unsafe_allow_html=True)
+    participants_panel = st.empty()
 
     st.markdown("---")
 
-    rpg = remaining_per_group()
-    for gname, remaining in rpg.items():
-        total = GROUPS[gname]
-        taken = total - remaining
-        css = GROUP_CSS.get(gname, "group-crypte")
-        st.markdown(
-            f'<div class="group-card {css}">'
-            f'<span>{gname}</span>'
-            f'<span class="pill">{remaining} / {total} place{"s" if remaining != 1 else ""}</span>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-        st.progress(taken / total if total else 0)
+    group_status_panel = st.empty()
 
 # ══════════════════════════════════════════════
 #  COLONNE DROITE — Roue + résultats
@@ -493,8 +585,9 @@ with col_left:
 with col_right:
 
     # ── Roue de la fortune ───────────────────
+    spinning = st.session_state.auto_spin
 
-    if st.session_state.auto_spin and st.session_state.pre_draw_pool:
+    if spinning and st.session_state.pre_draw_pool:
         # Animation post-tirage : roue snapshot pré-tirage → atterrit sur le bon segment
         wheel_pool = st.session_state.pre_draw_pool
         do_spin    = True
@@ -509,14 +602,44 @@ with col_right:
         do_spin    = False
         tidx       = 0
 
+    visible_results = st.session_state.results
+    if spinning and st.session_state.last_draw and visible_results:
+        visible_results = visible_results[:-1]
+
+    visible_pool = st.session_state.pre_draw_pool if spinning and st.session_state.pre_draw_pool else st.session_state.pool
+
+    participants_panel.markdown(
+        build_participants_html(visible_results),
+        unsafe_allow_html=True,
+    )
+
+    group_status_panel.markdown(
+        build_group_status_html(visible_pool),
+        unsafe_allow_html=True,
+    )
+
     components.html(
         build_wheel_html(wheel_pool, do_spin, tidx),
         height=430,
         scrolling=False,
     )
 
+    if spinning:
+        time.sleep((WHEEL_SPIN_START_DELAY_MS + WHEEL_SPIN_DURATION_MS + 200) / 1000)
+        spinning = False
+
+        participants_panel.markdown(
+            build_participants_html(st.session_state.results),
+            unsafe_allow_html=True,
+        )
+
+        group_status_panel.markdown(
+            build_group_status_html(st.session_state.pool),
+            unsafe_allow_html=True,
+        )
+
     # ── Résultat du dernier tirage ───────────
-    if st.session_state.last_draw:
+    if st.session_state.last_draw and not spinning:
         p, g = st.session_state.last_draw
         st.markdown(
             f'<div class="result-box">🎉 <b>{p}</b> rejoint <b>{g}</b> !</div>',
@@ -526,6 +649,9 @@ with col_right:
         if st.session_state.balloon_id < st.session_state.draw_id:
             st.balloons()
             st.session_state.balloon_id = st.session_state.draw_id
+
+    if st.session_state.auto_spin:
+        st.session_state.auto_spin = False
 
     # ── Tableau des attributions ─────────────
     if st.session_state.results:
