@@ -530,7 +530,7 @@ with col_right:
     # ── Tableau des attributions ─────────────
     if st.session_state.results:
         st.markdown("---")
-        st.subheader("📋 Attributions en temps réel")
+        st.subheader("📋 Attributions")
 
         df = pd.DataFrame(st.session_state.results)
         st.dataframe(
