@@ -575,7 +575,7 @@ with col_left:
         st.session_state.clear_name_field = False
 
     # ── Zone d'action (2-en-1) ───────────────
-    st.subheader("Entre ton prénom : ")
+    st.subheader("Entre ton prénom🔪🩸💀 : ")
     name_input = st.text_input(
         "",
         key="name_field",
