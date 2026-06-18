@@ -547,15 +547,24 @@ def build_participants_html(results: list[dict[str, str]]) -> str:
 # ═══════════════════════════════════════════════════════════════
 #  ⑥ TITRE
 # ═══════════════════════════════════════════════════════════════
-title_col, gif_col = st.columns([6, 1], gap="small")
+left_gif_col, title_col, right_gif_col = st.columns([1, 6, 1], gap="small")
+with left_gif_col:
+    webp_path = Path(__file__).with_name("giphy.webp")
+    webp_data = base64.b64encode(webp_path.read_bytes()).decode("utf-8")
+    st.markdown(
+        f'<div style="display:flex;align-items:center;justify-content:flex-start;height:100%;padding-top:.5rem;margin-left:1rem;">'
+        f'<img src="data:image/webp;base64,{webp_data}" style="width:180px;max-width:none;height:auto;" />'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 with title_col:
     st.markdown('<div class="main-title"> WorkWell 2026 : Tirage au sort de l\'Escape Game Horreur </div>', unsafe_allow_html=True)
-with gif_col:
+with right_gif_col:
     gif_path = Path(__file__).with_name("cri.gif")
     gif_data = base64.b64encode(gif_path.read_bytes()).decode("utf-8")
     st.markdown(
-        f'<div style="display:flex;align-items:center;justify-content:flex-end;height:100%;padding-top:.5rem;margin-right:2cm;">'
-        f'<img src="data:image/gif;base64,{gif_data}" style="max-width:155px;width:100%;height:auto;" />'
+        f'<div style="display:flex;align-items:center;justify-content:flex-end;height:100%;padding-top:.5rem;margin-right:.8rem;">'
+        f'<img src="data:image/gif;base64,{gif_data}" style="width:180px;max-width:none;height:auto;" />'
         f'</div>',
         unsafe_allow_html=True,
     )
